@@ -1,9 +1,9 @@
-# Auto PR issue label
+# iOS Auto PR issue label
 
 Example of usage:
 
 ```YML
-name: "iOS Auto pr worflow"
+name: "iOS Auto pr issue workflow"
 on:
   pull_request:
     types: [opened, closed]
