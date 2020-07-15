@@ -28,4 +28,6 @@ export async function handle(
 
   const labelWroker = new LabelWorker(pr, issue, linkedIssueToPRNumber, configuration)
   await labelWroker.run()
+
+  core.info('Handle label approvals')
 }
