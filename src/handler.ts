@@ -14,7 +14,7 @@ export async function handle(
   if (context.issue.number === undefined) {
     return
   }
-  const pr = new PullRequest(context)
+  const pr = new PullRequest(octokit, context)
   const issue = new Issue(octokit, context)
 
   const linkedIssueToPRNumber = await issue.getLinkedIssueToPrNumber()
@@ -28,4 +28,20 @@ export async function handle(
 
   const labelWroker = new LabelWorker(pr, issue, linkedIssueToPRNumber, configuration)
   await labelWroker.run()
+}
+
+export async function handleApprovals(
+  octokit: InstanceType<typeof GitHub>,
+  context: Context
+): Promise<void> {
+  const pr = new PullRequest(octokit, context)
+
+  // get current approvals
+  const approvals = await pr.getApprovals()
+
+  if (approvals == 1) {
+    core.info('add 1 label')
+  } else if (approvals > 1) {
+    core.info('add approved label')
+  }
 }

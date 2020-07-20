@@ -1986,18 +1986,61 @@ module.exports = require("child_process");
 /***/ }),
 
 /***/ 138:
-/***/ (function(__unusedmodule, exports) {
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PullRequest = void 0;
+const core = __importStar(__webpack_require__(470));
+const utils_1 = __webpack_require__(521);
 class PullRequest {
-    constructor(context) {
+    constructor(octokit, context) {
+        this.octokit = octokit;
         this.context = context;
     }
     isMerged() {
         return this.context.payload.pull_request && this.context.payload.pull_request['merged'];
+    }
+    getApprovals() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const { owner, repo } = this.context.repo;
+            const approvals = yield this.octokit.pulls.listReviews({
+                owner,
+                repo,
+                pull_number: utils_1.context.issue.number
+            });
+            core.info(`Approvals count ${approvals.data.length}`);
+            return approvals.data.length;
+        });
     }
 }
 exports.PullRequest = PullRequest;
@@ -9024,7 +9067,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.handle = void 0;
+exports.handleApprovals = exports.handle = void 0;
 const core = __importStar(__webpack_require__(470));
 const pull_request_1 = __webpack_require__(138);
 const issue_1 = __webpack_require__(351);
@@ -9035,7 +9078,7 @@ function handle(octokit, context, configuration) {
         if (context.issue.number === undefined) {
             return;
         }
-        const pr = new pull_request_1.PullRequest(context);
+        const pr = new pull_request_1.PullRequest(octokit, context);
         const issue = new issue_1.Issue(octokit, context);
         const linkedIssueToPRNumber = yield issue.getLinkedIssueToPrNumber();
         core.info(`Extracting linked issue from PR: ${(_a = linkedIssueToPRNumber === null || linkedIssueToPRNumber === void 0 ? void 0 : linkedIssueToPRNumber.toString()) !== null && _a !== void 0 ? _a : 'not found'}`);
@@ -9048,6 +9091,20 @@ function handle(octokit, context, configuration) {
     });
 }
 exports.handle = handle;
+function handleApprovals(octokit, context) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const pr = new pull_request_1.PullRequest(octokit, context);
+        // get current approvals
+        const approvals = yield pr.getApprovals();
+        if (approvals == 1) {
+            core.info('add 1 label');
+        }
+        else if (approvals > 1) {
+            core.info('add approved label');
+        }
+    });
+}
+exports.handleApprovals = handleApprovals;
 
 
 /***/ }),
@@ -9095,8 +9152,11 @@ function run() {
         try {
             const configuration = getConfiguration();
             const octokit = github.getOctokit(configuration.githubToken);
-            core.info('starting job');
-            yield Promise.all([handler.handle(octokit, github.context, configuration), labelsApprovals()]);
+            const handlers = [
+                handler.handleApprovals(octokit, github.context),
+                handler.handle(octokit, github.context, configuration)
+            ];
+            yield Promise.all(handlers);
         }
         catch (error) {
             core.setFailed(error.message);
@@ -9104,11 +9164,6 @@ function run() {
     });
 }
 exports.run = run;
-function labelsApprovals() {
-    return __awaiter(this, void 0, void 0, function* () {
-        core.info('Handle label approvals');
-    });
-}
 function getConfiguration() {
     const githubToken = core.getInput('github-token');
     const inReviewLabel = JSON.parse(core.getInput('in-review-label'));

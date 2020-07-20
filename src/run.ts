@@ -9,15 +9,15 @@ export async function run(): Promise<void> {
     const configuration = getConfiguration()
     const octokit = github.getOctokit(configuration.githubToken)
 
-    core.info('starting job')
-    await Promise.all([handler.handle(octokit, github.context, configuration), labelsApprovals()])
+    const handlers = [
+      handler.handleApprovals(octokit, github.context),
+      handler.handle(octokit, github.context, configuration)
+    ]
+
+    await Promise.all(handlers)
   } catch (error) {
     core.setFailed(error.message)
   }
-}
-
-async function labelsApprovals(): Promise<void> {
-  core.info('Handle label approvals')
 }
 
 function getConfiguration(): Configuration {
