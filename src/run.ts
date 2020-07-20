@@ -10,6 +10,8 @@ export async function run(): Promise<void> {
     const octokit = github.getOctokit(configuration.githubToken)
 
     await handler.handle(octokit, github.context, configuration)
+
+    core.info('Handle label approvals')
   } catch (error) {
     core.setFailed(error.message)
   }

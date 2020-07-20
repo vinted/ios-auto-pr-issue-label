@@ -31,9 +31,6 @@ export class Issue {
         repo,
         issue_number: parsedIssueNumberFromBody
       })
-
-      core.info(JSON.stringify(extractedIssue))
-
       return !extractedIssue.data.pull_request ? extractedIssue.data.number : null
     } catch (e) {
       core.warning(e)
