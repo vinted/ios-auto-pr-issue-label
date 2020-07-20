@@ -18,14 +18,19 @@ export class PullRequest {
   async getApprovals(): Promise<number> {
     const {owner, repo} = this.context.repo
 
-    const approvals = await this.octokit.pulls.listReviews({
+    const reviews = await this.octokit.pulls.listReviews({
       owner,
       repo,
       pull_number: context.issue.number
     })
 
-    core.info(`Approvals count ${approvals.data.length}`)
+    // eslint-disable-next-line @typescript-eslint/no-for-in-array
+    for (const review in reviews.data) {
+      core.info(review)
+    }
 
-    return approvals.data.length
+    core.info(`Approvals count ${reviews.data.length}`)
+
+    return reviews.data.length
   }
 }

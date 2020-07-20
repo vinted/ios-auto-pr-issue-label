@@ -2033,13 +2033,17 @@ class PullRequest {
     getApprovals() {
         return __awaiter(this, void 0, void 0, function* () {
             const { owner, repo } = this.context.repo;
-            const approvals = yield this.octokit.pulls.listReviews({
+            const reviews = yield this.octokit.pulls.listReviews({
                 owner,
                 repo,
                 pull_number: utils_1.context.issue.number
             });
-            core.info(`Approvals count ${approvals.data.length}`);
-            return approvals.data.length;
+            // eslint-disable-next-line @typescript-eslint/no-for-in-array
+            for (const review in reviews.data) {
+                core.info(review);
+            }
+            core.info(`Approvals count ${reviews.data.length}`);
+            return reviews.data.length;
         });
     }
 }
