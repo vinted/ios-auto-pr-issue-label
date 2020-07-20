@@ -2039,9 +2039,7 @@ class PullRequest {
                 pull_number: utils_1.context.issue.number
             });
             // eslint-disable-next-line @typescript-eslint/no-for-in-array
-            for (const review in reviews.data) {
-                core.info(review);
-            }
+            core.info(`${reviews.data}`);
             core.info(`Approvals count ${reviews.data.length}`);
             return reviews.data.length;
         });
