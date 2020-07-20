@@ -1,5 +1,4 @@
 import {Context} from '@actions/github/lib/context'
-import * as core from '@actions/core'
 import {GitHub, context} from '@actions/github/lib/utils'
 
 export class PullRequest {
@@ -26,6 +25,7 @@ export class PullRequest {
 
     const approvals: number[] = []
 
+    // eslint-disable-next-line @typescript-eslint/prefer-for-of
     for (let i = 0; i < reviews.data.length; i++) {
       const userId = reviews.data[i].user.id
       if (reviews.data[i].state.toLowerCase() == 'approved' && !approvals.includes(userId)) {
@@ -33,9 +33,6 @@ export class PullRequest {
       }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-for-in-array
-    core.info(`Approvals count ${approvals.length}`)
-
-    return reviews.data.length
+    return approvals.length
   }
 }

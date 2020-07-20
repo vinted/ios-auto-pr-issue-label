@@ -1990,25 +1990,6 @@ module.exports = require("child_process");
 
 "use strict";
 
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -2020,7 +2001,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PullRequest = void 0;
-const core = __importStar(__webpack_require__(470));
 const utils_1 = __webpack_require__(521);
 class PullRequest {
     constructor(octokit, context) {
@@ -2039,15 +2019,14 @@ class PullRequest {
                 pull_number: utils_1.context.issue.number
             });
             const approvals = [];
+            // eslint-disable-next-line @typescript-eslint/prefer-for-of
             for (let i = 0; i < reviews.data.length; i++) {
                 const userId = reviews.data[i].user.id;
                 if (reviews.data[i].state.toLowerCase() == 'approved' && !approvals.includes(userId)) {
                     approvals.push(userId);
                 }
             }
-            // eslint-disable-next-line @typescript-eslint/no-for-in-array
-            core.info(`Approvals count ${approvals.length}`);
-            return reviews.data.length;
+            return approvals.length;
         });
     }
 }
@@ -2420,6 +2399,49 @@ function parseDirectIssue(description) {
     const issue = description.match(issueRegex);
     return issue && issue.length > 0 ? issue[0].substr(1) : null;
 }
+
+
+/***/ }),
+
+/***/ 165:
+/***/ (function(__unusedmodule, exports) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Labeler = void 0;
+class Labeler {
+    constructor(issue, issueNumber) {
+        this.issue = issue;
+        this.issueNumber = issueNumber;
+    }
+    addLabelIfNeeded(label) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const containsLabel = yield this.issue.containsGivenLabel(this.issueNumber, label);
+            if (!containsLabel) {
+                yield this.issue.addLabel(this.issueNumber, label);
+            }
+        });
+    }
+    removeLabelIfNeeded(label) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const containsLabel = yield this.issue.containsGivenLabel(this.issueNumber, label);
+            if (containsLabel) {
+                yield this.issue.removeLabel(this.issueNumber, label);
+            }
+        });
+    }
+}
+exports.Labeler = Labeler;
 
 
 /***/ }),
@@ -5989,7 +6011,7 @@ exports.getState = getState;
 /***/ }),
 
 /***/ 483:
-/***/ (function(__unusedmodule, exports) {
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
 
@@ -6004,23 +6026,25 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LabelWorker = void 0;
+const labeler_1 = __webpack_require__(165);
 class LabelWorker {
     constructor(pr, issue, linkedIssueToPRNumber, configuration) {
         this.pr = pr;
         this.issue = issue;
         this.linkedIssueToPRNumber = linkedIssueToPRNumber;
         this.configuration = configuration;
+        this.labeler = new labeler_1.Labeler(this.issue, this.linkedIssueToPRNumber);
     }
     run() {
         return __awaiter(this, void 0, void 0, function* () {
             const { inReviewLabel, doneLabel } = this.configuration;
             yield this.createLabelsInRepoIfNeeded();
             if (this.pr.isMerged()) {
-                yield this.removeLabelIfNeeded(inReviewLabel);
-                yield this.addLabelIfNeeded(doneLabel);
+                yield this.labeler.removeLabelIfNeeded(inReviewLabel.name);
+                yield this.labeler.addLabelIfNeeded(doneLabel.name);
             }
             else {
-                yield this.addLabelIfNeeded(inReviewLabel);
+                yield this.labeler.addLabelIfNeeded(inReviewLabel.name);
             }
         });
     }
@@ -6033,22 +6057,6 @@ class LabelWorker {
             }
             if (!listLabelsInRepo.find(name => name == doneLabel.name)) {
                 yield this.issue.createLabel(doneLabel);
-            }
-        });
-    }
-    addLabelIfNeeded(label) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const containsLabel = yield this.issue.containsGivenLabel(this.linkedIssueToPRNumber, label.name);
-            if (!containsLabel) {
-                yield this.issue.addLabel(this.linkedIssueToPRNumber, label.name);
-            }
-        });
-    }
-    removeLabelIfNeeded(label) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const containsLabel = yield this.issue.containsGivenLabel(this.linkedIssueToPRNumber, label.name);
-            if (containsLabel) {
-                yield this.issue.removeLabel(this.linkedIssueToPRNumber, label.name);
             }
         });
     }
@@ -9080,6 +9088,7 @@ const core = __importStar(__webpack_require__(470));
 const pull_request_1 = __webpack_require__(138);
 const issue_1 = __webpack_require__(351);
 const label_worker_1 = __webpack_require__(483);
+const labeler_1 = __webpack_require__(165);
 function handle(octokit, context, configuration) {
     var _a;
     return __awaiter(this, void 0, void 0, function* () {
@@ -9102,13 +9111,21 @@ exports.handle = handle;
 function handleApprovals(octokit, context) {
     return __awaiter(this, void 0, void 0, function* () {
         const pr = new pull_request_1.PullRequest(octokit, context);
-        // get current approvals
+        const issue = new issue_1.Issue(octokit, context);
+        const labeler = new labeler_1.Labeler(issue, context.issue.number);
         const approvals = yield pr.getApprovals();
+        let ApprovalLabel;
+        (function (ApprovalLabel) {
+            ApprovalLabel["OneApproval"] = "1 Approval";
+            ApprovalLabel["Approved"] = "Approved";
+        })(ApprovalLabel || (ApprovalLabel = {}));
         if (approvals == 1) {
-            core.info('add 1 label');
+            yield labeler.removeLabelIfNeeded(ApprovalLabel.Approved);
+            yield labeler.addLabelIfNeeded(ApprovalLabel.OneApproval);
         }
         else if (approvals > 1) {
-            core.info('add approved label');
+            yield labeler.removeLabelIfNeeded(ApprovalLabel.OneApproval);
+            yield labeler.addLabelIfNeeded(ApprovalLabel.Approved);
         }
     });
 }
@@ -9161,8 +9178,8 @@ function run() {
             const configuration = getConfiguration();
             const octokit = github.getOctokit(configuration.githubToken);
             const handlers = [
-                handler.handleApprovals(octokit, github.context),
-                handler.handle(octokit, github.context, configuration)
+                handler.handle(octokit, github.context, configuration),
+                handler.handleApprovals(octokit, github.context)
             ];
             yield Promise.all(handlers);
         }

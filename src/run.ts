@@ -10,8 +10,8 @@ export async function run(): Promise<void> {
     const octokit = github.getOctokit(configuration.githubToken)
 
     const handlers = [
-      handler.handleApprovals(octokit, github.context),
-      handler.handle(octokit, github.context, configuration)
+      handler.handle(octokit, github.context, configuration),
+      handler.handleApprovals(octokit, github.context)
     ]
 
     await Promise.all(handlers)

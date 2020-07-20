@@ -1,12 +1,13 @@
 import {PullRequest} from '../github/pull_request'
 import {Issue} from '../github/issue'
 import {Configuration} from '../interfaces/configuration'
-import {Label} from '../interfaces/label'
 import {Worker} from './worker'
+import {Labeler} from './labeler'
 
 export class LabelWorker implements Worker {
   private pr: PullRequest
   private issue: Issue
+  private labeler: Labeler
   private linkedIssueToPRNumber: number
   private configuration: Configuration
 
@@ -20,6 +21,7 @@ export class LabelWorker implements Worker {
     this.issue = issue
     this.linkedIssueToPRNumber = linkedIssueToPRNumber
     this.configuration = configuration
+    this.labeler = new Labeler(this.issue, this.linkedIssueToPRNumber)
   }
 
   async run(): Promise<void> {
@@ -28,10 +30,10 @@ export class LabelWorker implements Worker {
     await this.createLabelsInRepoIfNeeded()
 
     if (this.pr.isMerged()) {
-      await this.removeLabelIfNeeded(inReviewLabel)
-      await this.addLabelIfNeeded(doneLabel)
+      await this.labeler.removeLabelIfNeeded(inReviewLabel.name)
+      await this.labeler.addLabelIfNeeded(doneLabel.name)
     } else {
-      await this.addLabelIfNeeded(inReviewLabel)
+      await this.labeler.addLabelIfNeeded(inReviewLabel.name)
     }
   }
 
@@ -44,28 +46,6 @@ export class LabelWorker implements Worker {
     }
     if (!listLabelsInRepo.find(name => name == doneLabel.name)) {
       await this.issue.createLabel(doneLabel)
-    }
-  }
-
-  private async addLabelIfNeeded(label: Label): Promise<void> {
-    const containsLabel = await this.issue.containsGivenLabel(
-      this.linkedIssueToPRNumber,
-      label.name
-    )
-
-    if (!containsLabel) {
-      await this.issue.addLabel(this.linkedIssueToPRNumber, label.name)
-    }
-  }
-
-  private async removeLabelIfNeeded(label: Label): Promise<void> {
-    const containsLabel = await this.issue.containsGivenLabel(
-      this.linkedIssueToPRNumber,
-      label.name
-    )
-
-    if (containsLabel) {
-      await this.issue.removeLabel(this.linkedIssueToPRNumber, label.name)
     }
   }
 }
