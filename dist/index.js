@@ -2018,15 +2018,14 @@ class PullRequest {
                 repo,
                 pull_number: utils_1.context.issue.number
             });
-            const approvals = [];
-            // eslint-disable-next-line @typescript-eslint/prefer-for-of
-            for (let i = 0; i < reviews.data.length; i++) {
-                const userId = reviews.data[i].user.id;
-                if (reviews.data[i].state.toLowerCase() == 'approved' && !approvals.includes(userId)) {
-                    approvals.push(userId);
+            const approvals = new Set();
+            for (const review of reviews.data) {
+                const userId = review.user.id;
+                if (review.state.toLowerCase() == 'approved' && !approvals.has(userId)) {
+                    approvals.add(userId);
                 }
             }
-            return approvals.length;
+            return approvals.size;
         });
     }
 }
@@ -9083,13 +9082,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.handleApprovals = exports.handle = void 0;
+exports.handlePRApprovals = exports.handleIssueLabels = void 0;
 const core = __importStar(__webpack_require__(470));
 const pull_request_1 = __webpack_require__(138);
 const issue_1 = __webpack_require__(351);
 const label_worker_1 = __webpack_require__(483);
 const labeler_1 = __webpack_require__(165);
-function handle(octokit, context, configuration) {
+function handleIssueLabels(octokit, context, configuration) {
     var _a;
     return __awaiter(this, void 0, void 0, function* () {
         if (context.issue.number === undefined) {
@@ -9107,8 +9106,8 @@ function handle(octokit, context, configuration) {
         yield labelWroker.run();
     });
 }
-exports.handle = handle;
-function handleApprovals(octokit, context) {
+exports.handleIssueLabels = handleIssueLabels;
+function handlePRApprovals(octokit, context) {
     return __awaiter(this, void 0, void 0, function* () {
         const pr = new pull_request_1.PullRequest(octokit, context);
         const issue = new issue_1.Issue(octokit, context);
@@ -9129,7 +9128,7 @@ function handleApprovals(octokit, context) {
         }
     });
 }
-exports.handleApprovals = handleApprovals;
+exports.handlePRApprovals = handlePRApprovals;
 
 
 /***/ }),
@@ -9178,8 +9177,8 @@ function run() {
             const configuration = getConfiguration();
             const octokit = github.getOctokit(configuration.githubToken);
             const handlers = [
-                handler.handle(octokit, github.context, configuration),
-                handler.handleApprovals(octokit, github.context)
+                handler.handleIssueLabels(octokit, github.context, configuration),
+                handler.handlePRApprovals(octokit, github.context)
             ];
             yield Promise.all(handlers);
         }

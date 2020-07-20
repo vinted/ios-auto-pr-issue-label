@@ -7,7 +7,7 @@ import {Configuration} from './interfaces/configuration'
 import {LabelWorker} from './workers/label_worker'
 import {Labeler} from './workers/labeler'
 
-export async function handle(
+export async function handleIssueLabels(
   octokit: InstanceType<typeof GitHub>,
   context: Context,
   configuration: Configuration
@@ -31,7 +31,7 @@ export async function handle(
   await labelWroker.run()
 }
 
-export async function handleApprovals(
+export async function handlePRApprovals(
   octokit: InstanceType<typeof GitHub>,
   context: Context
 ): Promise<void> {

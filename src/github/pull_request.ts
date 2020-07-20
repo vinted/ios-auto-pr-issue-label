@@ -23,16 +23,14 @@ export class PullRequest {
       pull_number: context.issue.number
     })
 
-    const approvals: number[] = []
-
-    // eslint-disable-next-line @typescript-eslint/prefer-for-of
-    for (let i = 0; i < reviews.data.length; i++) {
-      const userId = reviews.data[i].user.id
-      if (reviews.data[i].state.toLowerCase() == 'approved' && !approvals.includes(userId)) {
-        approvals.push(userId)
+    const approvals = new Set()
+    for (const review of reviews.data) {
+      const userId = review.user.id
+      if (review.state.toLowerCase() == 'approved' && !approvals.has(userId)) {
+        approvals.add(userId)
       }
     }
 
-    return approvals.length
+    return approvals.size
   }
 }
