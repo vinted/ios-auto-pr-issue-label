@@ -24,9 +24,17 @@ export class PullRequest {
       pull_number: context.issue.number
     })
 
+    const approvals: number[] = []
+
+    for (let i = 0; i < reviews.data.length; i++) {
+      const userId = reviews.data[i].user.id
+      if (reviews.data[i].state.toLowerCase() == 'approved' && !approvals.includes(userId)) {
+        approvals.push(userId)
+      }
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-for-in-array
-    core.info(`${reviews.data}`)
-    core.info(`Approvals count ${reviews.data.length}`)
+    core.info(`Approvals count ${approvals.length}`)
 
     return reviews.data.length
   }
