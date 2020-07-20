@@ -10,7 +10,7 @@ export async function run(): Promise<void> {
     const octokit = github.getOctokit(configuration.githubToken)
 
     core.info('starting job')
-    await Promise.all([labelsApprovals()])
+    await Promise.all([handler.handle(octokit, github.context, configuration), labelsApprovals()])
   } catch (error) {
     core.setFailed(error.message)
   }

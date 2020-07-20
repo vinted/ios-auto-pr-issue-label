@@ -2970,7 +2970,6 @@ class Issue {
                     repo,
                     issue_number: parsedIssueNumberFromBody
                 });
-                core.info(JSON.stringify(extractedIssue));
                 return !extractedIssue.data.pull_request ? extractedIssue.data.number : null;
             }
             catch (e) {
@@ -9096,7 +9095,8 @@ function run() {
         try {
             const configuration = getConfiguration();
             const octokit = github.getOctokit(configuration.githubToken);
-            yield handler.handle(octokit, github.context, configuration);
+            core.info('starting job');
+            yield Promise.all([handler.handle(octokit, github.context, configuration), labelsApprovals()]);
         }
         catch (error) {
             core.setFailed(error.message);
@@ -9104,6 +9104,11 @@ function run() {
     });
 }
 exports.run = run;
+function labelsApprovals() {
+    return __awaiter(this, void 0, void 0, function* () {
+        core.info('Handle label approvals');
+    });
+}
 function getConfiguration() {
     const githubToken = core.getInput('github-token');
     const inReviewLabel = JSON.parse(core.getInput('in-review-label'));
